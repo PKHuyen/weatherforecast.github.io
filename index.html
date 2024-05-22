@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/jquery"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery.terminal/js/jquery.terminal.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery.terminal/css/jquery.terminal.min.css"/>
+</head>
+<body>
+    <script>
+        function translateText(text, targetLanguage) {
+            return new Promise((resolve, reject) => {
+                const url = `./translate.php?text=${encodeURIComponent(text)}&target=${encodeURIComponent(targetLanguage)}`;
+
+                fetch(url)
+                    .then(response => response.text())
+                    .then(translatedText => {
+                        console.log(translatedText);
+		        resolve(translatedText);
+                    })
+                    .catch(error => {
+                        reject(`Translation error: ${error}`);
+                    });
+            });
+        }
+
+        $(document).ready(function() {
+            $('body').terminal({
+                weather: function(city_name) {
+                    const terminal = this;
+                    fetch(`./server.php?location=${encodeURIComponent(city_name)}`)
+                        .then(response => response.text())
+                        .then(data => {
+                            if (this.translation_language) {
+                                return translateText(data, this.translation_language)
+                                    .then(translatedText => {
+                                        terminal.echo(translatedText);
+                                    })
+                                    .catch(error => {
+                                        terminal.echo('An error occurred during translation: ' + error);
+                                    });
+                            } 
+                            else {
+                                terminal.echo(data);
+                            }
+                        })
+                        .catch(error => {
+                            terminal.echo('An error occurred: ' + error);
+                        });
+                },
+
+                translate: function(language) {
+                    // Set the translation language for the next command
+                    const terminal = this;
+                    this.translation_language = language;
+                    this.echo(`Translation language set to ${language}`);
+                }
+            }, 
+            {
+                greetings: function() {
+                    return [
+                        'Weather Terminal. Use the command "weather [location]" (weather Cleveland)',
+                        'Version 2: Now updated with Time corresponding to Location of the weather',
+                        'Version 3: Now recommending activities for the day.',
+			            'Version 4: You can translate to your favorite language. Please follow this command "translate [language-code]". For example: "translate es" will translate to Spanish',
+                        'Version 5: Add shortcuts',
+                        'Shortcut: Use keyboard "TAB" to execute "weather Cleveland"',
+                        'Shortcut: Use keyboard "1" to translate to Spanish, "2" to translate to Vietnamese, "3" to translate to English'
+                    ].join('\n');
+                },
+
+                keymap: {
+                    'TAB': function(e, original) {
+                        this.exec('weather Cleveland');
+                    },
+                    '1': function(e, original) {
+                        this.exec('translate es');
+                    },
+                    '2': function (e, original) {
+                        this.exec('translate vi');
+                    },
+                    '3': function (e, original) {
+                        this.exec('translate en');
+                    }
+                }
+            });
+        });
+    
+    </script>
+</body>
+</html>
